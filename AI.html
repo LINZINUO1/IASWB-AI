@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IASWB AI · TPSAFOM 学习引擎</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        /* ------ 欢迎页 ------ */
+        #welcome-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: opacity 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            will-change: opacity;
+            pointer-events: auto;
+            padding: 2rem;
+        }
+        #welcome-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .welcome-title {
+            font-size: clamp(2.2rem, 10vw, 5.5rem);
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            background: linear-gradient(135deg, #f0f4ff 0%, #b8d0ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.25rem;
+            text-shadow: 0 0 30px rgba(70, 130, 255, 0.3);
+        }
+        .welcome-sub {
+            font-size: clamp(0.85rem, 2.5vw, 1.4rem);
+            font-weight: 300;
+            color: #c8d6ff;
+            letter-spacing: 0.1em;
+            margin-top: -0.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            padding: 0 1rem;
+        }
+        .welcome-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+        }
+        .welcome-btn {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 0.9rem 2.8rem;
+            border-radius: 60px;
+            font-size: clamp(1rem, 2.5vw, 1.3rem);
+            font-weight: 400;
+            color: #fff;
+            letter-spacing: 0.15em;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: rgba(25, 60, 180, 0.2);
+            box-shadow: 0 0 30px rgba(30, 80, 255, 0.15);
+        }
+        .welcome-btn:hover {
+            background: rgba(60, 120, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: scale(1.02);
+            box-shadow: 0 0 50px rgba(50, 100, 255, 0.3);
+        }
+        .welcome-qq {
+            margin-top: 1.2rem;
+            font-size: 0.9rem;
+            color: #9bb0ff;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.4rem 1.6rem;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            letter-spacing: 0.05em;
+        }
+        .welcome-qq span {
+            font-weight: 500;
+            color: #d0ddff;
+        }
+
+        /* ------ 主界面 ------ */
+        #app-main {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            position: relative;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+        #app-main.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* 左面板 */
+        .left-panel {
+            width: 30%;
+            min-width: 120px;
+            height: 100%;
+            background: linear-gradient(145deg, #0b1a3a, #1a2a6c, #1e3b7a, #2b4f8c);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            background: rgba(20, 40, 100, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+        .left-content {
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 300;
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            letter-spacing: 0.15rem;
+            text-align: center;
+            line-height: 1.6;
+            text-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(2px);
+            z-index: 3;
+            position: relative;
+        }
+        .left-content small {
+            display: block;
+            font-size: clamp(0.6rem, 1.2vw, 0.9rem);
+            opacity: 0.6;
+            margin-top: 0.3rem;
+            letter-spacing: 0.08rem;
+        }
+
+        /* 右面板 */
+        .right-panel {
+            flex: 1;
+            height: 100%;
+            min-width: 0;
+            background: rgba(180, 210, 255, 0.12);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: clamp(0.8rem, 2vw, 1.5rem) clamp(0.8rem, 2vw, 2rem) clamp(0.8rem, 2vw, 1.8rem) clamp(0.8rem, 2vw, 2rem);
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(190, 215, 255, 0.10);
+        }
+
+        /* 聊天记录 */
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            padding: 0.3rem 0.1rem 0.8rem 0.1rem;
+            scroll-behavior: smooth;
+            margin-bottom: 0.3rem;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        }
+        .chat-history::-webkit-scrollbar { width: 3px; }
+        .chat-history::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 20px; }
+        .chat-history::-webkit-scrollbar-track { background: transparent; }
+
+        .message {
+            max-width: 80%;
+            padding: 0.6rem 1rem;
+            border-radius: 18px 18px 18px 4px;
+            background: #1a3a8a;
+            background: linear-gradient(135deg, #1f3f8a, #1a2f7a);
+            backdrop-filter: blur(6px);
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+            color: #f5f9ff;
+            font-weight: 300;
+            font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+            line-height: 1.5;
+            letter-spacing: 0.02em;
+            word-break: break-word;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            align-self: flex-start;
+        }
+        .message.user {
+            align-self: flex-end;
+            border-radius: 18px 18px 4px 18px;
+            background: #1f3f8a;
+            background: linear-gradient(135deg, #264a9e, #1a3280);
+        }
+        .message .meta {
+            font-size: 0.55rem;
+            opacity: 0.4;
+            margin-top: 0.2rem;
+            letter-spacing: 0.04em;
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+        .message .meta span {
+            background: rgba(255,255,255,0.04);
+            padding: 0.05rem 0.4rem;
+            border-radius: 30px;
+        }
+        .message .learn-tag {
+            background: rgba(255, 200, 50, 0.15);
+            color: #ffd966;
+            font-size: 0.6rem;
+            padding: 0.05rem 0.5rem;
+            border-radius: 30px;
+            margin-left: 0.3rem;
+            border: 1px solid rgba(255, 200, 50, 0.1);
+        }
+
+        /* 输入区 */
+        .input-area {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.1rem;
+            padding: 0.1rem 0;
+        }
+        .input-wrapper {
+            flex: 1;
+            min-width: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 0.1rem 0.1rem 0.1rem 1rem;
+            display: flex;
+            align-items: center;
+            transition: border 0.2s;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+        }
+        .input-wrapper:focus-within {
+            border-color: rgba(130, 180, 255, 0.3);
+            box-shadow: 0 0 30px rgba(40, 100, 255, 0.1);
+        }
+        #chat-input {
+            flex: 1;
+            min-width: 0;
+            background: transparent;
+            border: none;
+            padding: 0.6rem 0.2rem;
+            font-size: clamp(0.85rem, 1.8vw, 0.95rem);
+            color: #f0f4ff;
+            font-weight: 300;
+            outline: none;
+            letter-spacing: 0.02em;
+        }
+        #chat-input::placeholder {
+            color: rgba(255, 255, 255, 0.25);
+            font-weight: 200;
+        }
+
+        .send-btn {
+            width: clamp(38px, 6vw, 44px);
+            height: clamp(38px, 6vw, 44px);
+            border-radius: 50%;
+            background: #4a4f5a;
+            background: radial-gradient(circle at 30% 30%, #6a6f7a, #3a3f48);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+            margin: 3px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .send-btn:hover {
+            background: radial-gradient(circle at 30% 30%, #8a8f9a, #4a4f58);
+            transform: scale(1.02);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .send-btn svg {
+            width: clamp(18px, 3vw, 22px);
+            height: clamp(18px, 3vw, 22px);
+            fill: #fff;
+            opacity: 0.9;
+            transition: transform 0.2s;
+        }
+        .send-btn:hover svg {
+            transform: translateX(2px) translateY(-2px);
+        }
+
+        /* 影子 */
+        .shadow-overlay {
+            position: absolute;
+            top: 0;
+            left: 0%;
+            width: clamp(20px, 4vw, 40px);
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            background: linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 100%);
+            filter: blur(6px);
+            opacity: 0.8;
+        }
+
+        /* 光源 */
+        .light-source {
+            position: absolute;
+            width: clamp(200px, 50vw, 450px);
+            height: clamp(200px, 50vw, 450px);
+            border-radius: 50%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.07) 0%, transparent 70%);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: none;
+            z-index: 2;
+            mix-blend-mode: overlay;
+            will-change: left, top;
+        }
+        .light-source-right {
+            position: absolute;
+            width: clamp(180px, 45vw, 400px);
+            height: clamp(180px, 45vw, 400px);
+            border-radius: 50%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: none;
+            z-index: 2;
+            mix-blend-mode: overlay;
+            will-change: left, top;
+        }
+
+        .status-tip {
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.15);
+            padding: 0.2rem 0.5rem;
+            letter-spacing: 0.04em;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.02);
+            margin-top: 0.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .left-panel { width: 28%; min-width: 80px; padding: 1rem 0.6rem; }
+            .left-content { font-size: clamp(0.9rem, 2.8vw, 1.2rem); letter-spacing: 0.1rem; }
+            .left-content small { font-size: clamp(0.5rem, 1.4vw, 0.7rem); }
+            .right-panel { padding: 0.8rem 0.8rem 0.8rem 1rem; }
+            .message { max-width: 85%; padding: 0.5rem 0.8rem; font-size: clamp(0.8rem, 2vw, 0.9rem); }
+            .input-wrapper { padding: 0.1rem 0.1rem 0.1rem 0.8rem; }
+            #chat-input { font-size: clamp(0.8rem, 2vw, 0.9rem); padding: 0.5rem 0.1rem; }
+            .shadow-overlay { width: clamp(12px, 3vw, 20px); filter: blur(4px); opacity: 0.6; }
+        }
+        @media (max-width: 480px) {
+            .left-panel { width: 22%; min-width: 60px; padding: 0.6rem 0.3rem; }
+            .left-content { font-size: clamp(0.7rem, 2.5vw, 0.9rem); letter-spacing: 0.05rem; }
+            .left-content small { font-size: clamp(0.4rem, 1.2vw, 0.55rem); margin-top: 0.15rem; }
+            .right-panel { padding: 0.5rem 0.5rem 0.5rem 0.7rem; }
+            .message { max-width: 88%; padding: 0.4rem 0.6rem; font-size: clamp(0.7rem, 2.2vw, 0.8rem); border-radius: 14px 14px 14px 3px; }
+            .message.user { border-radius: 14px 14px 3px 14px; }
+            .input-area { gap: 0.3rem; }
+            .input-wrapper { padding: 0.05rem 0.05rem 0.05rem 0.6rem; border-radius: 30px; }
+            #chat-input { font-size: clamp(0.7rem, 2.2vw, 0.8rem); padding: 0.4rem 0.1rem; }
+            .send-btn { width: clamp(32px, 8vw, 38px); height: clamp(32px, 8vw, 38px); margin: 2px; }
+            .send-btn svg { width: clamp(15px, 4vw, 18px); height: clamp(15px, 4vw, 18px); }
+            .shadow-overlay { width: clamp(8px, 2.5vw, 14px); filter: blur(3px); opacity: 0.5; }
+            .light-source, .light-source-right { width: clamp(120px, 40vw, 200px); height: clamp(120px, 40vw, 200px); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 欢迎页 -->
+    <div id="welcome-screen">
+        <div class="welcome-title">欢迎使用 IASWB AI</div>
+        <div class="welcome-sub">一款专门为你不知道干什么时找事情干而生的AI</div>
+        <div class="welcome-actions">
+            <button class="welcome-btn" id="startBtn">点击开始使用</button>
+            <div class="welcome-qq">官方QQ群 <span>734415022</span></div>
+        </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div id="app-main">
+        <div class="left-panel" id="leftPanel">
+            <div class="left-content">
+                IASWB<br>
+                <small>· 找事做 ·</small>
+            </div>
+            <div class="light-source" id="lightLeft"></div>
+        </div>
+
+        <div class="right-panel" id="rightPanel">
+            <div class="light-source-right" id="lightRight"></div>
+            <div class="shadow-overlay"></div>
+
+            <div class="chat-history" id="chatHistory">
+                <div class="message">🧠 TPSAFOM Learning Engine ready.<br>Default: English. I can learn new concepts from you.<br><span style="opacity:0.5;font-size:0.8rem;">Try: "Make a text about dog" or "What is a cat?"</span></div>
+            </div>
+
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                </div>
+                <button class="send-btn" id="sendBtn">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/><path d="M0 0h24v24H0z" fill="none"/></svg>
+                </button>
+            </div>
+            <div class="status-tip" id="statusTip">● English · Learning mode active</div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            "use strict";
+
+            // ============ TPSAFOM 学习引擎 ============
+            let languageMode = 'en';
+            const learnedConcepts = {}; // 存储学习到的概念 { "dog": "A dog is a domesticated carnivore..." }
+            const pendingQuestions = {}; // 待学习的问题 { "dog": true }
+
+            // ---------- 资料库 ----------
+            const KNOWLEDGE_BASE = {
+                "capital of france": "Paris is the capital of France, located on the Seine River. It is known as the 'City of Light' and is a global center for art, fashion, and culture.",
+                "capital of china": "Beijing is the capital of China, with over 3,000 years of history. It is the political, cultural, and international center of China.",
+                "capital of japan": "Tokyo is the capital of Japan, located on the Kanto Plain of Honshu Island. It blends tradition and modernity.",
+                "capital of uk": "London is the capital of the United Kingdom, situated on the River Thames. It is one of Europe's largest cities.",
+                "capital of usa": "Washington, D.C. is the capital of the United States, located on the Potomac River. It houses the White House and the Capitol.",
+                "largest ocean": "The Pacific Ocean is the largest ocean on Earth, covering approximately 165 million square kilometers, about 46% of the planet's surface.",
+                "longest river": "The Nile River is the longest river in the world, stretching about 6,650 kilometers through northeastern Africa.",
+                "highest mountain": "Mount Everest is the world's highest mountain, with an elevation of 8,848.86 meters. Located in the Himalayas.",
+                "who invented telephone": "Alexander Graham Bell invented the telephone in 1876. His invention revolutionized global communication.",
+                "who discovered america": "Christopher Columbus discovered America in 1492. An Italian navigator sailing under the Spanish crown.",
+                "who wrote romeo and juliet": "William Shakespeare wrote Romeo and Juliet. He is the most famous playwright of the English Renaissance.",
+                "what is photosynthesis": "Photosynthesis is the process by which plants, algae, and some bacteria convert light energy, water, and carbon dioxide into organic matter and oxygen.",
+                "what is dna": "DNA (deoxyribonucleic acid) is the molecule that carries genetic information in living organisms. Its double helix structure was revealed by Watson and Crick in 1953.",
+                "what is gravity": "Gravity is the attractive force between objects with mass. Newton formulated the law of universal gravitation in 1687.",
+                "what is ai": "Artificial intelligence (AI) is a branch of computer science focused on creating systems that can perform tasks typically requiring human intelligence.",
+                "what is climate change": "Climate change refers to long-term shifts in global or regional climate patterns, primarily driven by human greenhouse gas emissions.",
+                "what is democracy": "Democracy is a form of government in which power derives from the people, typically through elections and civic participation.",
+                "what is inflation": "Inflation is the decline in purchasing power of money, reflected in a sustained increase in price levels.",
+                "what is quantum mechanics": "Quantum mechanics is the branch of physics that studies the behavior of matter and energy at atomic and subatomic scales.",
+                "what is the big bang": "The Big Bang is the leading scientific theory for the origin of the universe, proposing that the universe expanded from an extremely hot and dense singularity.",
+                "what is the moon": "The Moon is Earth's only natural satellite, with a diameter of about 3,474 kilometers. It influences Earth's tides.",
+                "what is the sun": "The Sun is the star at the center of our solar system, composed mostly of hydrogen and helium. It provides light and heat for Earth.",
+                "what is the internet": "The Internet is a global network of interconnected computers that communicate using TCP/IP protocols.",
+                "what is blockchain": "Blockchain is a distributed ledger technology that uses cryptographic algorithms to ensure data immutability.",
+                "what is a virus": "A virus is a microscopic infectious agent composed of nucleic acid and a protein coat. It cannot replicate on its own.",
+                "what is a black hole": "A black hole is a region of space with extremely strong gravitational pull, so strong that nothing, not even light, can escape.",
+                "what is a galaxy": "A galaxy is a massive system of stars, nebulae, dark matter, and other components bound by gravity.",
+                "what is evolution": "Evolution is the process of genetic change in populations over generations, driven by natural selection, mutation, and genetic drift.",
+                "what is the periodic table": "The periodic table is a tabular arrangement of chemical elements, created by Mendeleev in 1869.",
+                "what is a neuron": "A neuron is the basic functional unit of the nervous system, transmitting information via electrical signals and synaptic connections.",
+                "what is the ozone layer": "The ozone layer is a region of the Earth's stratosphere rich in ozone, which absorbs most of the Sun's ultraviolet radiation.",
+                "what is a pandemic": "A pandemic is an epidemic that spreads across multiple countries or continents. Examples include the 1918 influenza pandemic and the COVID-19 pandemic.",
+                "what is renewable energy": "Renewable energy comes from naturally replenished resources such as solar, wind, water, geothermal, and biomass.",
+                "what is 3d printing": "3D printing is an additive manufacturing technology that builds three-dimensional objects layer by layer.",
+                "what is the metaverse": "The metaverse is a collective virtual space, blending augmented physical reality with persistent virtual worlds.",
+                "what is a robot": "A robot is a programmable mechanical device capable of automatically performing tasks.",
+                "what is a fractal": "A fractal is a geometric shape whose parts resemble the whole, often found in nature such as snowflakes, coastlines, and ferns.",
+                "what is a quasar": "A quasar is an extremely luminous active galactic nucleus powered by a supermassive black hole.",
+                "what is a neutrino": "A neutrino is a fundamental particle with extremely low mass and weak interaction with matter.",
+                "what is the anthropocene": "The Anthropocene is a geological concept referring to the period when human activity has become a dominant influence on the environment."
+            };
+
+            // 扩充常识库
+            const extraTopics = [
+                "what is a star", "what is a planet", "what is a comet", "what is an asteroid",
+                "what is a nebula", "what is a supernova", "what is a white dwarf", "what is a neutron star",
+                "what is dark matter", "what is dark energy", "what is a wormhole", "what is time",
+                "what is space", "what is light", "what is sound", "what is a wave",
+                "what is a particle", "what is an atom", "what is a molecule", "what is a compound"
+            ];
+            extraTopics.forEach(topic => {
+                if (!KNOWLEDGE_BASE[topic]) {
+                    KNOWLEDGE_BASE[topic] = `This is a brief entry about "${topic}". It is a concept found in nature or human society, encompassing various aspects of knowledge.`;
+                }
+            });
+
+            // ---------- 情绪库 ----------
+            const EMOTION_MAP = {
+                "sad": "sad", "unhappy": "sad", "depressed": "sad", "cry": "sad", "upset": "sad",
+                "angry": "angry", "mad": "angry", "frustrated": "angry", "annoyed": "angry",
+                "happy": "happy", "glad": "happy", "joy": "happy", "excited": "happy",
+                "worried": "anxious", "anxious": "anxious", "nervous": "anxious",
+                "confused": "confused", "lost": "confused", "curious": "curious",
+                "love": "loving", "like": "loving", "enjoy": "loving",
+                "hate": "disgusted", "dislike": "disgusted",
+                "surprised": "surprised", "amazing": "surprised",
+                "tired": "tired", "exhausted": "tired",
+                "难过": "sad", "伤心": "sad", "开心": "happy", "生气": "angry"
+            };
+
+            // ---------- 核心引擎 ----------
+            function extractKeywords(text) {
+                // 提取可能的关键词 (名词/概念)
+                const words = text.toLowerCase().split(/[\s,，.。!！?？;；:：]+/).filter(w => w.length > 2);
+                const stopWords = ['the', 'a', 'an', 'of', 'for', 'on', 'at', 'to', 'in', 'with', 'without', 'and', 'or', 'but',
+                    'about', 'what', 'who', 'where', 'when', 'why', 'how', 'is', 'are', 'was', 'were', 'am', 'be', 'been',
+                    'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might',
+                    'make', 'text', 'about', 'write', 'tell', 'explain', 'describe', 'define'
+                ];
+                const filtered = words.filter(w => !stopWords.includes(w) && w.length > 2);
+                // 去重
+                return [...new Set(filtered)];
+            }
+
+            function tpsafomEngine(input, history = []) {
+                // 检测语言
+                const hasChinese = /[\u4e00-\u9fa5]/.test(input);
+                if (hasChinese) languageMode = 'zh';
+                else languageMode = 'en';
+
+                // 1-1 判断问句
+                const isQuestion = input.includes('?') || input.includes('？') ||
+                    /^(what|who|where|when|why|how|is|are|do|does|can|will|could|would|may|might|shall|should|write|make|tell|explain|describe|define)/i.test(input.trim()) ||
+                    /^(什么|谁|哪里|何时|为什么|怎么|如何|是否|写|告诉我|解释|描述|定义|生成|创建|做)/.test(input.trim());
+
+                // 1-2 情绪推测
+                let emotion = "neutral";
+                const lower = input.toLowerCase();
+                for (let [key, val] of Object.entries(EMOTION_MAP)) {
+                    if (lower.includes(key) || input.includes(key)) {
+                        emotion = val;
+                        break;
+                    }
+                }
+
+                // 1-3 提取关键词 & 检索
+                const keywords = extractKeywords(input);
+                let knowledgeHit = null;
+                let knowledgeAnswer = null;
+                let unknownWords = [];
+                let knownParts = [];
+
+                // 检查每个关键词是否在资料库或已学习的概念中
+                for (let kw of keywords) {
+                    let found = false;
+                    // 检查资料库
+                    for (let [key, val] of Object.entries(KNOWLEDGE_BASE)) {
+                        if (key.includes(kw) || kw.includes(key)) {
+                            found = true;
+                            knownParts.push({ word: kw, answer: val, source: 'knowledge' });
+                            break;
+                        }
+                    }
+                    // 检查已学习的概念
+                    if (!found && learnedConcepts[kw]) {
+                        found = true;
+                        knownParts.push({ word: kw, answer: learnedConcepts[kw], source: 'learned' });
+                    }
+                    // 检查是否在待学习列表中
+                    if (!found) {
+                        unknownWords.push(kw);
+                    }
+                }
+
+                // 如果有未知词汇，且是陈述句或请求（如 "make a text about dog"），触发学习模式
+                if (unknownWords.length > 0 && !isQuestion) {
+                    // 生成学习问题
+                    const unknownWord = unknownWords[0];
+                    const learnQuestion = `What is a ${unknownWord}? Please teach me.`;
+                    pendingQuestions[unknownWord] = true;
+
+                    return {
+                        reply: `I don't know about "${unknownWord}" yet. Could you teach me? (Please answer: "${learnQuestion}")`,
+                        emotion: emotion,
+                        isQuestion: false,
+                        knowledgeUsed: null,
+                        words: keywords,
+                        canAnswer: false,
+                        language: languageMode,
+                        isLearning: true,
+                        learningWord: unknownWord
+                    };
+                }
+
+                // 如果是学习回复（用户回答了之前的问题）
+                if (isQuestion && unknownWords.length === 0 && keywords.length > 0) {
+                    // 检查是否在回复一个待学习的问题
+                    for (let kw of keywords) {
+                        if (pendingQuestions[kw] || Object.keys(pendingQuestions).some(pq => kw.includes(pq) || pq.includes(kw))) {
+                            // 用户提供了学习内容
+                            const learnedWord = Object.keys(pendingQuestions).find(pq => kw.includes(pq) || pq.includes(kw)) || kw;
+                            // 将用户输入作为学习内容
+                            const content = input.replace(/what is a|what is|tell me about|解释|什么是/g, '').trim();
+                            if (content.length > 5) {
+                                learnedConcepts[learnedWord] = content;
+                                delete pendingQuestions[learnedWord];
+                                return {
+                                    reply: `✅ Learned about "${learnedWord}"! Now I know: ${content}`,
+                                    emotion: emotion,
+                                    isQuestion: false,
+                                    knowledgeUsed: learnedWord,
+                                    words: keywords,
+                                    canAnswer: true,
+                                    language: languageMode,
+                                    isLearning: true,
+                                    learningWord: learnedWord
+                                };
+                            }
+                        }
+                    }
+                }
+
+                // 如果有已知部分，拼凑文章
+                if (knownParts.length > 0) {
+                    let article = "";
+                    if (knownParts.length === 1) {
+                        article = knownParts[0].answer;
+                    } else {
+                        // 多部分拼凑
+                        const parts = knownParts.map(p => p.answer);
+                        article = parts.join(" Additionally, ");
+                    }
+                    // 根据输入请求生成文章
+                    if (input.toLowerCase().includes('text') || input.toLowerCase().includes('article') ||
+                        input.toLowerCase().includes('write') || input.toLowerCase().includes('make') ||
+                        input.toLowerCase().includes('生成') || input.toLowerCase().includes('写')) {
+                        article = `Here is a text about ${knownParts.map(p => p.word).join(', ')}: ${article}`;
+                    }
+                    return {
+                        reply: article,
+                        emotion: emotion,
+                        isQuestion: isQuestion,
+                        knowledgeUsed: knownParts.map(p => p.word).join(', '),
+                        words: keywords,
+                        canAnswer: true,
+                        language: languageMode,
+                        isLearning: false
+                    };
+                }
+
+                // 普通问句处理
+                if (isQuestion) {
+                    for (let [key, val] of Object.entries(KNOWLEDGE_BASE)) {
+                        if (input.toLowerCase().includes(key)) {
+                            return {
+                                reply: val,
+                                emotion: emotion,
+                                isQuestion: true,
+                                knowledgeUsed: key,
+                                words: keywords,
+                                canAnswer: true,
+                                language: languageMode,
+                                isLearning: false
+                            };
+                        }
+                    }
+                }
+
+                // 默认回复
+                const defaultReplies = [
+                    "I understand. Could you tell me more?",
+                    "Interesting! Let me think about that.",
+                    "I see. What would you like to know specifically?",
+                    "Good question. Can you provide more context?",
+                    "I'm here to help. What else would you like to discuss?"
+                ];
+                if (languageMode === 'zh') {
+                    return {
+                        reply: defaultReplies[Math.floor(Math.random() * defaultReplies.length)],
+                        emotion: emotion,
+                        isQuestion: isQuestion,
+                        knowledgeUsed: null,
+                        words: keywords,
+                        canAnswer: true,
+                        language: languageMode,
+                        isLearning: false
+                    };
+                }
+                return {
+                    reply: defaultReplies[Math.floor(Math.random() * defaultReplies.length)],
+                    emotion: emotion,
+                    isQuestion: isQuestion,
+                    knowledgeUsed: null,
+                    words: keywords,
+                    canAnswer: true,
+                    language: languageMode,
+                    isLearning: false
+                };
+            }
+
+            // ============ UI 绑定 ============
+            const welcomeScreen = document.getElementById('welcome-screen');
+            const appMain = document.getElementById('app-main');
+            const startBtn = document.getElementById('startBtn');
+            const chatInput = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const chatHistory = document.getElementById('chatHistory');
+            const leftPanel = document.getElementById('leftPanel');
+            const rightPanel = document.getElementById('rightPanel');
+            const lightLeft = document.getElementById('lightLeft');
+            const lightRight = document.getElementById('lightRight');
+            const statusTip = document.getElementById('statusTip');
+
+            let history = [];
+
+            function appendMessage(text, isUser = false, meta = {}) {
+                const div = document.createElement('div');
+                div.className = `message ${isUser ? 'user' : ''}`;
+                div.textContent = text;
+                if (meta && Object.keys(meta).length) {
+                    const metaDiv = document.createElement('div');
+                    metaDiv.className = 'meta';
+                    let parts = [];
+                    if (meta.emotion) parts.push(`emotion: ${meta.emotion}`);
+                    if (meta.knowledgeUsed) parts.push(`match: ${meta.knowledgeUsed}`);
+                    if (meta.isQuestion !== undefined) parts.push(meta.isQuestion ? '❓ question' : '📝 statement');
+                    if (meta.isLearning) parts.push('🧠 learning');
+                    metaDiv.innerHTML = parts.map(p => `<span>${p}</span>`).join('');
+                    div.appendChild(metaDiv);
+                }
+                chatHistory.appendChild(div);
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+            }
+
+            function handleSend() {
+                const raw = chatInput.value.trim();
+                if (!raw) return;
+
+                appendMessage(raw, true);
+                history.push(raw);
+
+                const result = tpsafomEngine(raw, history);
+                appendMessage(result.reply, false, {
+                    emotion: result.emotion,
+                    knowledgeUsed: result.knowledgeUsed || 'none',
+                    isQuestion: result.isQuestion,
+                    isLearning: result.isLearning || false
+                });
+
+                const langDisplay = result.language === 'zh' ? '中文' : 'English';
+                const learningStatus = result.isLearning ? ' · Learning' : '';
+                statusTip.textContent = `● ${langDisplay} · Emotion: ${result.emotion} · ${result.isQuestion ? 'Question' : 'Statement'}${learningStatus}`;
+
+                chatInput.value = '';
+                chatInput.focus();
+            }
+
+            startBtn.addEventListener('click', function() {
+                welcomeScreen.classList.add('hidden');
+                appMain.classList.add('active');
+                setTimeout(() => {
+                    chatInput.focus();
+                }, 350);
+                initLightPos();
+            });
+
+            sendBtn.addEventListener('click', handleSend);
+            chatInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+
+            // 光源效果
+            function updateLight(e) {
+                const x = e.clientX;
+                const y = e.clientY;
+                const leftRect = leftPanel.getBoundingClientRect();
+                const lx = Math.min(Math.max(x, leftRect.left), leftRect.right);
+                const ly = Math.min(Math.max(y, leftRect.top), leftRect.bottom);
+                lightLeft.style.left = (lx - leftRect.left) + 'px';
+                lightLeft.style.top = (ly - leftRect.top) + 'px';
+                const rightRect = rightPanel.getBoundingClientRect();
+                const rx = Math.min(Math.max(x, rightRect.left), rightRect.right);
+                const ry = Math.min(Math.max(y, rightRect.top), rightRect.bottom);
+                lightRight.style.left = (rx - rightRect.left) + 'px';
+                lightRight.style.top = (ry - rightRect.top) + 'px';
+            }
+
+            let ticking = false;
+            document.addEventListener('mousemove', function(e) {
+                if (!ticking) {
+                    window.requestAnimationFrame(() => {
+                        updateLight(e);
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+
+            function initLightPos() {
+                const leftRect = leftPanel.getBoundingClientRect();
+                lightLeft.style.left = (leftRect.width / 2) + 'px';
+                lightLeft.style.top = (leftRect.height / 2) + 'px';
+                const rightRect = rightPanel.getBoundingClientRect();
+                lightRight.style.left = (rightRect.width / 2) + 'px';
+                lightRight.style.top = (rightRect.height / 2) + 'px';
+            }
+
+            window.addEventListener('resize', function() {
+                if (appMain.classList.contains('active')) {
+                    initLightPos();
+                }
+            });
+
+            document.addEventListener('touchstart', function() {
+                if (appMain.classList.contains('active')) {
+                    initLightPos();
+                }
+            }, { passive: true });
+
+        })();
+    </script>
+</body>
+</html>
